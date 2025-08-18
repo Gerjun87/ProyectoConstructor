@@ -1,0 +1,2 @@
+# Ignorar archivos de secretos
+netlify/functions/service-account.json
