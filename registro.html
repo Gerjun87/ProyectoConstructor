@@ -32,15 +32,21 @@
                 </select>
             </div>
 
+            <!-- 🔹 Dropdown multi-select de empleados -->
             <div class="input-group">
-                <label for="empleado">Empleado:</label>
-                <select id="empleado" required>
-                    <option value="">Seleccione un empleado</option>
-                </select>
+                <label>Empleados:</label>
+                <div id="empleados-dropdown" class="multi-select-dropdown">
+                    <div class="select-box">
+                        <span id="selected-empleados">Selecciona uno o más empleados</span>
+                        <span class="arrow">📠</span>
+                    </div>
+                    <div class="checkboxes" id="empleados-lista"></div>
+                </div>
             </div>
 
+
             <div class="input-group">
-                <label for="costo">Costo Diario:</label>
+                <label for="costo">Costo Diario Total:</label>
                 <input type="text" id="costo" readonly>
             </div>
 

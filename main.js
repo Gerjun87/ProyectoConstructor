@@ -108,7 +108,9 @@ function checkAuth() {
 // ======================================================
 async function setupRegistro() {
     const obraSelect = document.getElementById('obra');
-    const empleadoSelect = document.getElementById('empleado');
+    const empleadosContainer = document.getElementById('empleados-lista'); // div con checkboxes
+    const selectedSpan = document.getElementById('selected-empleados');
+    const selectBox = document.querySelector('.select-box');
     const costoInput = document.getElementById('costo');
     const registroForm = document.getElementById('registro-form');
     const logoutBtn = document.getElementById('logout-btn');
@@ -127,37 +129,81 @@ async function setupRegistro() {
 
     if (empleados) {
         empleados.forEach(empleado => {
-            const option = document.createElement('option');
-            option.value = empleado.ID_Empleado;
-            option.textContent = empleado.Nombre_Completo;
-            empleadoSelect.appendChild(option);
+            const checkboxWrapper = document.createElement('label');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = empleado.ID_Empleado;
+            checkbox.dataset.costo = empleado.Costo_Diario;
+            checkbox.dataset.nombre = empleado.Nombre_Completo;
+
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
+            empleadosContainer.appendChild(checkboxWrapper);
+
+            // Evento: recalcular costo y actualizar texto de seleccionados
+            checkbox.addEventListener('change', () => {
+                actualizarCostoTotal();
+                actualizarTextoSeleccionados();
+            });
         });
     }
 
-    empleadoSelect.addEventListener('change', () => {
-        const selectedEmpleado = empleados.find(emp => emp.ID_Empleado === empleadoSelect.value);
-        if (selectedEmpleado) {
-            costoInput.value = selectedEmpleado.Costo_Diario;
-        }
+    function actualizarCostoTotal() {
+        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
+        let total = 0;
+        checkboxes.forEach(cb => total += parseFloat(cb.dataset.costo) || 0);
+        costoInput.value = total;
+    }
+
+    function actualizarTextoSeleccionados() {
+        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const nombres = Array.from(checkboxes).map(cb => cb.dataset.nombre);
+        selectedSpan.textContent = nombres.length ? nombres.join(', ') : 'Selecciona uno o más';
+    }
+
+    // Toggle del dropdown
+    selectBox.addEventListener('click', () => {
+        empleadosContainer.classList.toggle('active');
+        empleadosContainer.style.display = empleadosContainer.classList.contains('active') ? 'block' : 'none';
+        selectBox.querySelector('.arrow').textContent = empleadosContainer.classList.contains('active') ? '❌' : '📠';
     });
 
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const registro = {
-            ID_Registro: Date.now(),
-            Fecha: document.getElementById('fecha').value,
-            ID_Obra: obraSelect.value,
-            ID_Empleado: empleadoSelect.value,
-            Costo_Diario: costoInput.value
-        };
 
-        const success = await writeSheetData(registro);
+        const fecha = document.getElementById('fecha').value;
+        const obraId = obraSelect.value;
+        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
 
-        if (success) {
-            alert("Registro guardado con éxito.");
+        if (checkboxes.length === 0) {
+            alert("Debe seleccionar al menos un empleado.");
+            return;
+        }
+
+        let successAll = true;
+
+        for (const cb of checkboxes) {
+            const registro = {
+                ID_Registro: Date.now() + "_" + cb.value,
+                Fecha: fecha,
+                ID_Obra: obraId,
+                ID_Empleado: cb.value,
+                Costo_Diario: cb.dataset.costo
+            };
+
+            const success = await writeSheetData(registro);
+            if (!success) successAll = false;
+        }
+
+        if (successAll) {
+            alert("Registros guardados con éxito.");
             registroForm.reset();
+            empleadosContainer.innerHTML = '';
+            selectedSpan.textContent = 'Selecciona uno o más';
+            setupRegistro();
         } else {
-            alert("Hubo un error al guardar el registro. Inténtalo de nuevo.");
+            alert("Hubo un error al guardar uno o más registros. Inténtalo de nuevo.");
         }
     });
 
@@ -166,6 +212,7 @@ async function setupRegistro() {
         window.location.href = 'index.html';
     });
 }
+
 
 // ======================================================
 // LÓGICA DE REPORTES
