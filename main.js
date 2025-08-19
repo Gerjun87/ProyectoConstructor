@@ -2,27 +2,21 @@
 const SPREADSHEET_ID = '17NWdiemzo2kocMgVeIZ9YyfL8yEux9VtKwvkRmnG1hQ';
 const API_KEY = 'AIzaSyCblactvvgWRsauiiFvKk3YBNJWOKw0ZPM';
 const APPS_SCRIPT_URL = 'https://proyecto-constructor.vercel.app/api/proxy';
-//const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA074QM-7_pZKI-1XQxqcOpcZ1kRXZ_BrTgwI7n87ASwlmRZDWRJqAiG51_sVbMPU/exec';
 
 // Función genérica para obtener datos de una hoja
 async function getSheetData(sheetName) {
     const range = `${sheetName}!A1:Z`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
-    
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
         if (!data.values) return [];
-        
         const headers = data.values[0];
         const rows = data.values.slice(1);
-        
         return rows.map(row => {
             let rowObject = {};
-            headers.forEach((header, index) => {
-                rowObject[header] = row[index];
-            });
+            headers.forEach((header, index) => rowObject[header] = row[index]);
             return rowObject;
         });
     } catch (error) {
@@ -36,10 +30,7 @@ async function writeSheetData(data) {
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(data)
         });
         const result = await response.json();
@@ -51,10 +42,9 @@ async function writeSheetData(data) {
 }
 
 // ======================================================
-// LÓGICA DEL LOGIN (en index.html)
+// LOGIN
 // ======================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Lógica del Login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -62,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('error-message');
-            
             errorMessage.style.display = 'none';
 
             const users = await getSheetData('Usuarios');
@@ -75,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userFound = users.find(user => user.Usuario === username && user.Contraseña === password);
             if (userFound) {
                 localStorage.setItem('currentUser', JSON.stringify(userFound));
-                window.location.href = 'registro.html'; // Redirige a la página de registro
+                window.location.href = 'registro.html';
             } else {
                 errorMessage.textContent = 'Usuario o contraseña incorrectos.';
                 errorMessage.style.display = 'block';
@@ -83,13 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Lógica del Dashboard para Registro
     if (document.body.classList.contains('registro-page')) {
         checkAuth();
         setupRegistro();
     }
 
-    // Lógica del Dashboard para Reportes
     if (document.body.classList.contains('reportes-page')) {
         checkAuth();
         setupReportes();
@@ -104,11 +91,11 @@ function checkAuth() {
 }
 
 // ======================================================
-// LÓGICA DE REGISTRO
+// REGISTRO
 // ======================================================
 async function setupRegistro() {
     const obraSelect = document.getElementById('obra');
-    const empleadosContainer = document.getElementById('empleados-lista'); // div con checkboxes
+    const empleadosContainer = document.getElementById('empleados-lista');
     const selectedSpan = document.getElementById('selected-empleados');
     const selectBox = document.querySelector('.select-box');
     const costoInput = document.getElementById('costo');
@@ -118,7 +105,8 @@ async function setupRegistro() {
     const obras = await getSheetData('Obras');
     const empleados = await getSheetData('Empleados');
 
-    if (obras) {
+    // Cargar obras solo una vez
+    if (obraSelect.options.length <= 1 && obras) {
         obras.forEach(obra => {
             const option = document.createElement('option');
             option.value = obra.ID_Obra;
@@ -127,10 +115,13 @@ async function setupRegistro() {
         });
     }
 
-    if (empleados) {
+    // Función para cargar empleados
+    function cargarEmpleados() {
+        empleadosContainer.innerHTML = '';
+        if (!empleados) return;
+
         empleados.forEach(empleado => {
             const checkboxWrapper = document.createElement('label');
-
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = empleado.ID_Empleado;
@@ -141,13 +132,14 @@ async function setupRegistro() {
             checkboxWrapper.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
             empleadosContainer.appendChild(checkboxWrapper);
 
-            // Evento: recalcular costo y actualizar texto de seleccionados
             checkbox.addEventListener('change', () => {
                 actualizarCostoTotal();
                 actualizarTextoSeleccionados();
             });
         });
     }
+
+    cargarEmpleados();
 
     function actualizarCostoTotal() {
         const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
@@ -171,7 +163,6 @@ async function setupRegistro() {
 
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const fecha = document.getElementById('fecha').value;
         const obraId = obraSelect.value;
         const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
@@ -182,7 +173,6 @@ async function setupRegistro() {
         }
 
         let successAll = true;
-
         for (const cb of checkboxes) {
             const registro = {
                 ID_Registro: Date.now() + "_" + cb.value,
@@ -191,7 +181,6 @@ async function setupRegistro() {
                 ID_Empleado: cb.value,
                 Costo_Diario: cb.dataset.costo
             };
-
             const success = await writeSheetData(registro);
             if (!success) successAll = false;
         }
@@ -199,9 +188,11 @@ async function setupRegistro() {
         if (successAll) {
             alert("Registros guardados con éxito.");
             registroForm.reset();
-            empleadosContainer.innerHTML = '';
             selectedSpan.textContent = 'Selecciona uno o más';
-            setupRegistro();
+            cargarEmpleados(); // recargamos solo empleados
+            empleadosContainer.style.display = 'none';
+            selectBox.querySelector('.arrow').textContent = '📠';
+            costoInput.value = 0;
         } else {
             alert("Hubo un error al guardar uno o más registros. Inténtalo de nuevo.");
         }
@@ -213,9 +204,8 @@ async function setupRegistro() {
     });
 }
 
-
 // ======================================================
-// LÓGICA DE REPORTES
+// REPORTES
 // ======================================================
 async function setupReportes() {
     const reporteForm = document.getElementById('reporte-form');
@@ -224,10 +214,8 @@ async function setupReportes() {
 
     reporteForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const fechaInicio = document.getElementById('fecha-inicio').value;
         const fechaFin = document.getElementById('fecha-fin').value;
-
         reporteResultados.innerHTML = '';
 
         const registros = await getSheetData('Registros_Diarios');
@@ -248,16 +236,11 @@ async function setupReportes() {
         });
 
         const reportePorObra = {};
-
         registrosFiltrados.forEach(registro => {
             const obraId = registro.ID_Obra;
             const costo = parseFloat(registro.Costo_Diario) || 0;
-
             if (!reportePorObra[obraId]) {
-                reportePorObra[obraId] = {
-                    totalCosto: 0,
-                    registros: []
-                };
+                reportePorObra[obraId] = { totalCosto: 0, registros: [] };
             }
             reportePorObra[obraId].totalCosto += costo;
             reportePorObra[obraId].registros.push(registro);
@@ -270,7 +253,6 @@ async function setupReportes() {
 
         let html = '';
         let totalGeneral = 0;
-
         for (const obraId in reportePorObra) {
             const obra = obras.find(o => o.ID_Obra === obraId);
             const nombreObra = obra ? obra.Nombre_Obra : 'Obra desconocida';
@@ -291,10 +273,8 @@ async function setupReportes() {
                             }).join('')}
                         </ul>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
-
         html += `<h3>Total General: <strong>$${totalGeneral.toLocaleString('es-CL')}</strong></h3>`;
         reporteResultados.innerHTML = html;
 
