@@ -1,7 +1,8 @@
 // Constantes para tu Google Sheet
 const SPREADSHEET_ID = '17NWdiemzo2kocMgVeIZ9YyfL8yEux9VtKwvkRmnG1hQ';
 const API_KEY = 'AIzaSyCblactvvgWRsauiiFvKk3YBNJWOKw0ZPM';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA074QM-7_pZKI-1XQxqcOpcZ1kRXZ_BrTgwI7n87ASwlmRZDWRJqAiG51_sVbMPU/exec';
+const APPS_SCRIPT_URL = 'https://proyecto-constructor.vercel.app/api/proxy';
+//const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA074QM-7_pZKI-1XQxqcOpcZ1kRXZ_BrTgwI7n87ASwlmRZDWRJqAiG51_sVbMPU/exec';
 
 // Función genérica para obtener datos de una hoja
 async function getSheetData(sheetName) {
