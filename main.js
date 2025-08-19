@@ -36,7 +36,8 @@ async function writeSheetData(data) {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(data)
         });
