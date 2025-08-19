@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Control de Obra</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-page">
+    <header>
+        <div class="header-container">
+            <h1>Control de Obra</h1>
+            <nav class="nav-links">
+                <a href="registro.html">Registro</a>
+                <a href="reportes.html" class="active">Reportes</a>
+            </nav>
+            <button id="logout-btn">Cerrar Sesión</button>
+        </div>
+    </header>
+    <main class="dashboard-container">
+        <h2>Reportes y Resúmenes</h2>
+        <form id="reporte-form">
+            <div class="input-group">
+                <label for="fecha-inicio">Desde:</label>
+                <input type="date" id="fecha-inicio" required>
+            </div>
+            <div class="input-group">
+                <label for="fecha-fin">Hasta:</label>
+                <input type="date" id="fecha-fin" required>
+            </div>
+            <button type="submit">Generar Reporte</button>
+        </form>
+        <div id="reporte-resultados">
+            </div>
+    </main>
+    <script src="main.js"></script>
+</body>
+</html>

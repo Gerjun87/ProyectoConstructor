@@ -5,24 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Control de Obra</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
-    <div class="login-container">
-        <h1>Iniciar Sesión</h1>
+<body class="login-page">
+    <header>
+        <div class="header-container">
+            <h1>Control de Obra</h1>
+        </div>
+    </header>
+    
+    <main class="login-container">
+        <h2>Iniciar Sesión</h2>
         <form id="login-form">
             <div class="input-group">
-                <i class="fas fa-user"></i>
-                <input type="text" id="username" placeholder="Usuario" required>
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" name="username" required>
             </div>
+            
             <div class="input-group">
-                <i class="fas fa-lock"></i>
-                <input type="password" id="password" placeholder="Contraseña" required>
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" id="login-btn">Entrar</button>
+            
+            <button type="submit">Entrar</button>
+            
+            <p id="error-message" class="error-message" style="display:none;"></p>
         </form>
-        <p id="error-message" class="error-message"></p>
-    </div>
+    </main>
 
     <script src="main.js"></script>
 </body>

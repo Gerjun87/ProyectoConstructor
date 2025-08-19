@@ -2,81 +2,41 @@
 body {
     font-family: Arial, sans-serif;
     background-color: #f0f2f5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
     margin: 0;
 }
 
-.login-container {
-    background: #fff;
+/* Estilos de Login */
+.login-page {
+    height: 100vh; /* Para que la página ocupe toda la altura */
+    display: flex;
+    flex-direction: column;
+}
+
+.login-page .login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1; /* Esto hace que el contenedor ocupe el espacio restante */
     padding: 30px;
+    background: #fff;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     text-align: center;
     width: 90%;
     max-width: 400px;
+    margin: 20px auto;
 }
 
-.login-container h1 {
-    margin-bottom: 25px;
-    color: #333;
-}
-
-/* Campos de entrada */
-.input-group {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.input-group i {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #aaa;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px 12px 12px 40px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 16px;
-}
-
-/* Botón de login */
-#login-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-#login-btn:hover {
-    background-color: #0056b3;
-}
-
-/* Mensaje de error */
-.error-message {
-    color: red;
-    margin-top: 15px;
-    display: none; /* Se oculta por defecto y se muestra con JavaScript */
-}
-
-/* Estilos para el Dashboard */
+/* Estilos para el Dashboard y Login Header */
 header {
     background-color: #0056b3;
     color: white;
     padding: 15px 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .header-container {
@@ -85,6 +45,36 @@ header {
     align-items: center;
     max-width: 900px;
     margin: auto;
+}
+
+/* Alineación del título en la página de login */
+.login-page .header-container {
+    justify-content: center; /* Centramos el título cuando no hay nav-links */
+}
+
+/* Esconder el nav y el botón de logout en la página de login */
+.login-page .nav-links, .login-page #logout-btn {
+    display: none;
+}
+
+/* Estilos para el Dashboard (registro.html y reportes.html) */
+.nav-links {
+    display: flex;
+    gap: 20px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-bottom: 2px solid transparent;
+    transition: border-bottom 0.3s ease;
+}
+
+.nav-links a.active, .nav-links a:hover {
+    border-bottom: 2px solid white;
 }
 
 #logout-btn {
@@ -117,33 +107,32 @@ h2 {
     padding-bottom: 10px;
 }
 
+/* Mejorar la separación en todos los formularios */
 form .input-group {
     display: flex;
     flex-direction: column;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 form label {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-weight: bold;
     color: #555;
 }
 
-form input, form select {
-    padding: 10px;
+form input, form select, form button {
+    padding: 12px;
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 16px;
     box-sizing: border-box;
+    width: 100%;
 }
 
 form button {
-    width: 100%;
-    padding: 12px;
     background-color: #28a745;
     color: white;
     border: none;
-    border-radius: 5px;
     font-size: 18px;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -169,10 +158,41 @@ hr {
     border: 1px solid #eee;
 }
 
-/* Responsive Design */
-@media (max-width: 600px) {
+.reporte-obra {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.reporte-obra:last-child {
+    border-bottom: none;
+}
+
+.reporte-obra h3 {
+    margin-top: 0;
+}
+
+.detalles ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 10px;
+}
+
+.detalles li {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+/* Estilos Responsivos */
+@media (max-width: 768px) {
     .header-container {
         flex-direction: column;
+        text-align: center;
         gap: 10px;
+    }
+    .nav-links {
+        justify-content: center;
     }
 }

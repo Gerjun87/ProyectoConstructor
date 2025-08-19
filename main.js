@@ -52,6 +52,7 @@ async function writeSheetData(data) {
 // LÓGICA DEL LOGIN (en index.html)
 // ======================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Lógica del Login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userFound = users.find(user => user.Usuario === username && user.Contraseña === password);
             if (userFound) {
                 localStorage.setItem('currentUser', JSON.stringify(userFound));
-                window.location.href = 'dashboard.html';
+                window.location.href = 'registro.html'; // Redirige a la página de registro
             } else {
                 errorMessage.textContent = 'Usuario o contraseña incorrectos.';
                 errorMessage.style.display = 'block';
@@ -80,32 +81,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-// ======================================================
-// LÓGICA DEL DASHBOARD (en dashboard.html)
-// ======================================================
-    if (document.body.classList.contains('dashboard-page')) {
+    // Lógica del Dashboard para Registro
+    if (document.body.classList.contains('registro-page')) {
         checkAuth();
-        setupDashboard();
+        setupRegistro();
+    }
+
+    // Lógica del Dashboard para Reportes
+    if (document.body.classList.contains('reportes-page')) {
+        checkAuth();
+        setupReportes();
     }
 });
 
+// Funciones de control de sesión
 function checkAuth() {
-    // Si no hay usuario logueado, redirige a la página de login
     if (!localStorage.getItem('currentUser')) {
         window.location.href = 'index.html';
     }
 }
 
-async function setupDashboard() {
+// ======================================================
+// LÓGICA DE REGISTRO
+// ======================================================
+async function setupRegistro() {
     const obraSelect = document.getElementById('obra');
     const empleadoSelect = document.getElementById('empleado');
     const costoInput = document.getElementById('costo');
     const registroForm = document.getElementById('registro-form');
     const logoutBtn = document.getElementById('logout-btn');
-    const reporteForm = document.getElementById('reporte-form');
-    const reporteResultados = document.getElementById('reporte-resultados');
 
-    // Cargar Obras y Empleados al cargar la página
     const obras = await getSheetData('Obras');
     const empleados = await getSheetData('Empleados');
 
@@ -127,7 +132,6 @@ async function setupDashboard() {
         });
     }
 
-    // Actualizar costo al seleccionar un empleado
     empleadoSelect.addEventListener('change', () => {
         const selectedEmpleado = empleados.find(emp => emp.ID_Empleado === empleadoSelect.value);
         if (selectedEmpleado) {
@@ -135,7 +139,6 @@ async function setupDashboard() {
         }
     });
 
-    // Manejar el envío del formulario de registro
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const registro = {
@@ -156,41 +159,45 @@ async function setupDashboard() {
         }
     });
 
-    // Manejar el botón de cerrar sesión
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('currentUser');
         window.location.href = 'index.html';
     });
+}
 
-    // === LÓGICA DEL REPORTE ===
+// ======================================================
+// LÓGICA DE REPORTES
+// ======================================================
+async function setupReportes() {
+    const reporteForm = document.getElementById('reporte-form');
+    const reporteResultados = document.getElementById('reporte-resultados');
+    const logoutBtn = document.getElementById('logout-btn');
+
     reporteForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const fechaInicio = document.getElementById('fecha-inicio').value;
         const fechaFin = document.getElementById('fecha-fin').value;
 
-        // Limpia los resultados anteriores
         reporteResultados.innerHTML = '';
 
-        // Obtenemos todos los datos de los registros diarios
         const registros = await getSheetData('Registros_Diarios');
+        const obras = await getSheetData('Obras');
+        const empleados = await getSheetData('Empleados');
 
-        if (!registros) {
+        if (!registros || !obras || !empleados) {
             reporteResultados.innerHTML = `<p class="error-message">Error al cargar los datos para el reporte.</p>`;
             return;
         }
 
-        // 1. Filtramos los registros por el rango de fechas
         const registrosFiltrados = registros.filter(registro => {
             const fechaRegistro = new Date(registro.Fecha);
             const inicio = new Date(fechaInicio);
             const fin = new Date(fechaFin);
-            // Sumamos un día a la fecha final para incluirla en el rango
             fin.setDate(fin.getDate() + 1);
             return fechaRegistro >= inicio && fechaRegistro < fin;
         });
 
-        // 2. Agrupamos los registros por obra y calculamos los totales
         const reportePorObra = {};
 
         registrosFiltrados.forEach(registro => {
@@ -207,7 +214,6 @@ async function setupDashboard() {
             reportePorObra[obraId].registros.push(registro);
         });
 
-        // 3. Mostramos los resultados
         if (Object.keys(reportePorObra).length === 0) {
             reporteResultados.innerHTML = `<p>No se encontraron registros para el período seleccionado.</p>`;
             return;
@@ -243,7 +249,6 @@ async function setupDashboard() {
         html += `<h3>Total General: <strong>$${totalGeneral.toLocaleString('es-CL')}</strong></h3>`;
         reporteResultados.innerHTML = html;
 
-        // Añadir funcionalidad para mostrar/ocultar detalles
         document.querySelectorAll('.ver-detalles-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const detallesDiv = btn.nextElementSibling;
@@ -251,5 +256,10 @@ async function setupDashboard() {
                 btn.textContent = detallesDiv.style.display === 'none' ? 'Ver detalles' : 'Ocultar detalles';
             });
         });
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
     });
 }
