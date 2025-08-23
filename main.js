@@ -6,6 +6,28 @@ const API_KEY = 'AIzaSyCblactvvgWRsauiiFvKk3YBNJWOKw0ZPM';
 const APPS_SCRIPT_URL = 'https://proyecto-constructor.vercel.app/api/proxy';
 
 // ===============================
+// Helpers de notificación
+// ===============================
+function showNotification(message, type = "success") {
+    const notification = document.getElementById("notification");
+    if (!notification) return; // seguridad por si no existe el div
+
+    notification.textContent = message;
+
+    // Resetear clases
+    notification.className = "notification";
+    if (type === "error") notification.classList.add("error");
+
+    // Mostrar
+    notification.classList.add("show");
+
+    // Ocultar después de 3s
+    setTimeout(() => {
+        notification.classList.remove("show");
+    }, 3000);
+}
+
+// ===============================
 // Helpers de red
 // ===============================
 async function getSheetData(sheetName) {
@@ -107,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- Gestión
     if (document.body.classList.contains('gestion-page')) {
         checkAuth();
-        setupGestion();
+        //setupGestion();
         document.getElementById('logout-btn')?.addEventListener('click', () => {
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
@@ -191,7 +213,7 @@ async function setupRegistro() {
         const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
 
         if (!fecha || !obraId || marcados.length === 0) {
-            alert("Completa fecha, obra y al menos un empleado.");
+            showNotification("Completa fecha, obra y al menos un empleado.", "error");
             return;
         }
 
@@ -210,7 +232,7 @@ async function setupRegistro() {
         }
 
         if (ok) {
-            alert("Registros guardados con éxito.");
+            showNotification("Registros guardados con éxito ✅", "success");
             registroForm.reset();
             selectedSpan.textContent = 'Selecciona uno o más';
             cargarEmpleados();
@@ -218,13 +240,13 @@ async function setupRegistro() {
             selectBox.querySelector('.arrow').textContent = '📠';
             costoInput.value = 0;
         } else {
-            alert("Hubo un error al guardar uno o más registros.");
+            showNotification("Hubo un error al guardar uno o más registros.", "error");
         }
     });
 }
 
 // ===============================
-// REPORTES
+// REPORTES MEJORADOS
 // ===============================
 async function setupReportes() {
     const reporteForm = document.getElementById('reporte-form');
@@ -237,6 +259,7 @@ async function setupReportes() {
         const fechaFin = document.getElementById('fecha-fin').value;
         reporteResultados.innerHTML = '';
 
+        // Traer datos
         const registros = await getSheetData('Registros_Diarios');
         const obras = await getSheetData('Obras');
         const empleados = await getSheetData('Empleados');
@@ -246,14 +269,16 @@ async function setupReportes() {
             return;
         }
 
+        // Filtrar por rango de fechas
         const registrosFiltrados = registros.filter(registro => {
             const fechaRegistro = new Date(registro.Fecha);
             const inicio = new Date(fechaInicio);
             const fin = new Date(fechaFin);
-            fin.setDate(fin.getDate() + 1);
+            fin.setDate(fin.getDate() + 1); // incluir último día
             return fechaRegistro >= inicio && fechaRegistro < fin;
         });
 
+        // Agrupar por obra
         const reportePorObra = {};
         registrosFiltrados.forEach(registro => {
             const obraId = registro.ID_Obra;
@@ -270,7 +295,17 @@ async function setupReportes() {
             return;
         }
 
-        let html = '';
+        // Construir HTML del reporte
+        let html = `<table class="reporte-table">
+                        <thead>
+                            <tr>
+                                <th>Obra</th>
+                                <th>Total Obra</th>
+                                <th>Detalles</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
         let totalGeneral = 0;
         for (const obraId in reportePorObra) {
             const obra = obras.find(o => o.ID_Obra === obraId);
@@ -279,29 +314,45 @@ async function setupReportes() {
             totalGeneral += totalObra;
 
             html += `
-                <div class="reporte-obra">
-                    <h3>Obra: ${nombreObra}</h3>
-                    <p>Total a pagar: <strong>$${totalObra.toLocaleString('es-CL')}</strong></p>
-                    <button class="ver-detalles-btn" data-obra-id="${obraId}">Ver detalles</button>
-                    <div class="detalles" style="display: none;">
+                <tr class="obra-row">
+                    <td>${nombreObra}</td>
+                    <td>$${totalObra.toLocaleString('es-CL')}</td>
+                    <td><button class="ver-detalles-btn" data-obra-id="${obraId}">Ver detalles</button></td>
+                </tr>
+                <tr class="detalles-row" style="display:none;">
+                    <td colspan="3">
                         <ul>
                             ${reportePorObra[obraId].registros.map(reg => {
                                 const empleado = empleados.find(e => e.ID_Empleado === reg.ID_Empleado);
                                 const nombreEmpleado = empleado ? empleado.Nombre_Completo : 'Empleado desconocido';
-                                return `<li>${reg.Fecha}: ${nombreEmpleado} - $${parseFloat(reg.Costo_Diario).toLocaleString('es-CL')}</li>`;
+                                const [yyyy, mm, dd] = reg.Fecha.split('-');
+                                const fechaFormateada = `${dd}/${mm}/${yyyy}`;
+                                return `<li>${fechaFormateada}: ${nombreEmpleado} - $${parseFloat(reg.Costo_Diario).toLocaleString('es-CL')}</li>`;
                             }).join('')}
                         </ul>
-                    </div>
-                </div>`;
+                    </td>
+                </tr>`;
         }
-        html += `<h3>Total General: <strong>$${totalGeneral.toLocaleString('es-CL')}</strong></h3>`;
+
+        html += `</tbody>
+                 <tfoot>
+                     <tr class="total-general">
+                         <td><strong>Total General</strong></td>
+                         <td><strong>$${totalGeneral.toLocaleString('es-CL')}</strong></td>
+                         <td></td>
+                     </tr>
+                 </tfoot>
+                 </table>`;
+
         reporteResultados.innerHTML = html;
 
+        // Toggle de detalles
         document.querySelectorAll('.ver-detalles-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const detallesDiv = btn.nextElementSibling;
-                const visible = detallesDiv.style.display !== 'none';
-                detallesDiv.style.display = visible ? 'none' : 'block';
+                const tr = btn.closest('tr');
+                const detallesRow = tr.nextElementSibling;
+                const visible = detallesRow.style.display !== 'none';
+                detallesRow.style.display = visible ? 'none' : 'table-row';
                 btn.textContent = visible ? 'Ver detalles' : 'Ocultar detalles';
             });
         });
@@ -311,7 +362,9 @@ async function setupReportes() {
 // ===============================
 // GESTIÓN (upsert Empleados/Obras)
 // ===============================
-async function setupGestion() {
+
+document.addEventListener('DOMContentLoaded', async () => {
+
     const empleadoSelect = document.getElementById('empleado-select');
     const empleadoNombre = document.getElementById('empleado-nombre');
     const empleadoCosto = document.getElementById('empleado-costo');
@@ -324,7 +377,7 @@ async function setupGestion() {
     const empleados = await getSheetData('Empleados');
     const obras = await getSheetData('Obras');
 
-    // Empleados
+    // ===== Llenar selects =====
     empleados.forEach(emp => {
         const option = document.createElement('option');
         option.value = emp.ID_Empleado;
@@ -332,7 +385,6 @@ async function setupGestion() {
         empleadoSelect.appendChild(option);
     });
 
-    // Obras
     obras.forEach(ob => {
         const option = document.createElement('option');
         option.value = ob.ID_Obra;
@@ -340,6 +392,7 @@ async function setupGestion() {
         obraSelect.appendChild(option);
     });
 
+    // ===== Eventos de selección =====
     empleadoSelect.addEventListener('change', () => {
         const selected = empleados.find(emp => emp.ID_Empleado == empleadoSelect.value);
         if (selected) {
@@ -356,6 +409,22 @@ async function setupGestion() {
         obraNombre.value = selected ? (selected.Nombre_Obra || '') : '';
     });
 
+    // ===== Función para mostrar notificación igual que en registro =====
+    function showNotification(message, type = "success") {
+        const notif = document.getElementById('notification');
+        notif.textContent = message;
+        notif.className = 'notification show';
+        if(type === 'error') {
+            notif.classList.add('error');
+        } else {
+            notif.classList.remove('error');
+        }
+        setTimeout(() => {
+            notif.classList.remove('show');
+        }, 2500);
+    }
+
+    // ===== Guardar/Actualizar empleado =====
     empleadoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = empleadoSelect.value || Date.now().toString();
@@ -365,10 +434,19 @@ async function setupGestion() {
             Costo_Diario: empleadoCosto.value
         };
         const success = await writeSheetData(data);
-        alert(success ? 'Empleado guardado/actualizado con éxito' : 'Error al guardar empleado');
-        location.reload();
+        if(success) {
+            showNotification('Empleado guardado/actualizado con éxito ✅', "success");
+
+            // Esperar 2.5 segundos antes de recargar la página
+            setTimeout(() => {
+                location.reload();
+            }, 3500);
+        } else {
+            showNotification('Error al guardar empleado', "error");
+        }
     });
 
+    // ===== Guardar/Actualizar obra =====
     obraForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = obraSelect.value || Date.now().toString();
@@ -377,7 +455,16 @@ async function setupGestion() {
             Nombre_Obra: obraNombre.value
         };
         const success = await writeSheetData(data);
-        alert(success ? 'Obra guardada/actualizada con éxito' : 'Error al guardar obra');
-        location.reload();
+        if(success) {
+            showNotification('Obra guardada/actualizada con éxito ✅', "success");
+
+            // Esperar 2.5 segundos antes de recargar la página
+            setTimeout(() => {
+                location.reload();
+            }, 3500);
+        } else {
+            showNotification('Error al guardar obra', "error");
+        }
     });
-}
+
+});

@@ -280,3 +280,94 @@ hr {
     margin-right: 8px; /* espacio entre checkbox y texto */
 }
 
+/* ===== Popup de notificaciones ===== */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%; /* lo mandamos al centro */
+    transform: translateX(-50%) translateY(-20px); /* lo centramos bien */
+    background-color: #28a745; /* Verde éxito por defecto */
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    z-index: 2000;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0); /* animación centrada */
+}
+
+.notification.error {
+    background-color: #dc3545; /* Rojo para error */
+}
+
+/*#####*/
+
+.reporte-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.reporte-table th, .reporte-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.reporte-table th {
+    background-color: #007bff;
+    color: white;
+}
+
+.reporte-table tr.obra-row:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.reporte-table tr.detalles-row td {
+    background-color: #eef5ff;
+}
+
+.reporte-table .total-general td {
+    background-color: #28a745;
+    color: white;
+    font-size: 1.1em;
+}
+
+/* ================= Detalles de empleados ================= */
+.detalles-row ul {
+    list-style: none; /* quitar puntos negros */
+    padding-left: 0;
+    margin: 0;
+}
+
+.detalles-row ul li {
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+}
+
+/* Colores alternados (zebra) */
+.detalles-row ul li:nth-child(odd) {
+    background-color: #e6f0ff; /* azul clarito */
+}
+
+.detalles-row ul li:nth-child(even) {
+    background-color: #f2f9ff; /* azul más suave */
+}
+
+/* Ícono delante del nombre del empleado */
+.detalles-row ul li::before {
+    content: "👤"; /* ícono de persona */
+    display: inline-block;
+    width: 20px;
+    margin-right: 8px;
+}
+
+
