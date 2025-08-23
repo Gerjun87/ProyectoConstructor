@@ -1,12 +1,15 @@
-// Constantes para tu Google Sheet
+// ===============================
+// Constantes Google Sheets
+// ===============================
 const SPREADSHEET_ID = '17NWdiemzo2kocMgVeIZ9YyfL8yEux9VtKwvkRmnG1hQ';
 const API_KEY = 'AIzaSyCblactvvgWRsauiiFvKk3YBNJWOKw0ZPM';
 const APPS_SCRIPT_URL = 'https://proyecto-constructor.vercel.app/api/proxy';
 
-// Función genérica para obtener datos de una hoja
+// ===============================
+// Helpers de red
+// ===============================
 async function getSheetData(sheetName) {
-    const range = `${sheetName}!A1:Z`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}!A1:Z?key=${API_KEY}`;
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
@@ -15,17 +18,16 @@ async function getSheetData(sheetName) {
         const headers = data.values[0];
         const rows = data.values.slice(1);
         return rows.map(row => {
-            let rowObject = {};
-            headers.forEach((header, index) => rowObject[header] = row[index]);
-            return rowObject;
+            const obj = {};
+            headers.forEach((h, i) => obj[h] = row[i]);
+            return obj;
         });
     } catch (error) {
-        console.error('Error al obtener datos de Google Sheets:', error);
-        return null;
+        console.error('Error al obtener datos:', error);
+        return [];
     }
 }
 
-// Función para escribir datos en la hoja de cálculo
 async function writeSheetData(data) {
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -41,10 +43,20 @@ async function writeSheetData(data) {
     }
 }
 
-// ======================================================
-// LOGIN
-// ======================================================
+// ===============================
+// Sesión
+// ===============================
+function checkAuth() {
+    if (!localStorage.getItem('currentUser')) {
+        window.location.href = 'index.html';
+    }
+}
+
+// ===============================
+// Boot
+// ===============================
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- Login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -61,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const userFound = users.find(user => user.Usuario === username && user.Contraseña === password);
+            const userFound = users.find(u => u.Usuario === username && u.Contraseña === password);
             if (userFound) {
                 localStorage.setItem('currentUser', JSON.stringify(userFound));
                 window.location.href = 'registro.html';
@@ -72,27 +84,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ---- Registro
     if (document.body.classList.contains('registro-page')) {
         checkAuth();
         setupRegistro();
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
     }
 
+    // ---- Reportes
     if (document.body.classList.contains('reportes-page')) {
         checkAuth();
         setupReportes();
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+    }
+
+    // ---- Gestión
+    if (document.body.classList.contains('gestion-page')) {
+        checkAuth();
+        setupGestion();
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
     }
 });
 
-// Funciones de control de sesión
-function checkAuth() {
-    if (!localStorage.getItem('currentUser')) {
-        window.location.href = 'index.html';
-    }
-}
-
-// ======================================================
+// ===============================
 // REGISTRO
-// ======================================================
+// ===============================
 async function setupRegistro() {
     const obraSelect = document.getElementById('obra');
     const empleadosContainer = document.getElementById('empleados-lista');
@@ -100,12 +125,11 @@ async function setupRegistro() {
     const selectBox = document.querySelector('.select-box');
     const costoInput = document.getElementById('costo');
     const registroForm = document.getElementById('registro-form');
-    const logoutBtn = document.getElementById('logout-btn');
 
     const obras = await getSheetData('Obras');
     const empleados = await getSheetData('Empleados');
 
-    // Cargar obras solo una vez
+    // Cargar obras (evitar duplicados)
     if (obraSelect.options.length <= 1 && obras) {
         obras.forEach(obra => {
             const option = document.createElement('option');
@@ -115,22 +139,21 @@ async function setupRegistro() {
         });
     }
 
-    // Función para cargar empleados
     function cargarEmpleados() {
         empleadosContainer.innerHTML = '';
         if (!empleados) return;
-
         empleados.forEach(empleado => {
-            const checkboxWrapper = document.createElement('label');
+            const label = document.createElement('label');
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = empleado.ID_Empleado;
             checkbox.dataset.costo = empleado.Costo_Diario;
             checkbox.dataset.nombre = empleado.Nombre_Completo;
 
-            checkboxWrapper.appendChild(checkbox);
-            checkboxWrapper.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
-            empleadosContainer.appendChild(checkboxWrapper);
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
+            empleadosContainer.appendChild(label);
 
             checkbox.addEventListener('change', () => {
                 actualizarCostoTotal();
@@ -138,82 +161,78 @@ async function setupRegistro() {
             });
         });
     }
-
     cargarEmpleados();
 
     function actualizarCostoTotal() {
-        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
         let total = 0;
-        checkboxes.forEach(cb => total += parseFloat(cb.dataset.costo) || 0);
+        marcados.forEach(cb => total += parseFloat(cb.dataset.costo) || 0);
         costoInput.value = total;
     }
 
     function actualizarTextoSeleccionados() {
-        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
-        const nombres = Array.from(checkboxes).map(cb => cb.dataset.nombre);
+        const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const nombres = Array.from(marcados).map(cb => cb.dataset.nombre);
         selectedSpan.textContent = nombres.length ? nombres.join(', ') : 'Selecciona uno o más';
     }
 
-    // Toggle del dropdown
+    // Dropdown empleados
     selectBox.addEventListener('click', () => {
-        empleadosContainer.classList.toggle('active');
-        empleadosContainer.style.display = empleadosContainer.classList.contains('active') ? 'block' : 'none';
-        selectBox.querySelector('.arrow').textContent = empleadosContainer.classList.contains('active') ? '❌' : '📠';
+        const activo = empleadosContainer.classList.toggle('active');
+        empleadosContainer.style.display = activo ? 'block' : 'none';
+        selectBox.querySelector('.arrow').textContent = activo ? '❌' : '📠';
     });
 
+    // Guardar registros diarios
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fecha = document.getElementById('fecha').value;
         const obraId = obraSelect.value;
-        const checkboxes = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
 
-        if (checkboxes.length === 0) {
-            alert("Debe seleccionar al menos un empleado.");
+        if (!fecha || !obraId || marcados.length === 0) {
+            alert("Completa fecha, obra y al menos un empleado.");
             return;
         }
 
-        let successAll = true;
-        for (const cb of checkboxes) {
-            const registro = {
+        let ok = true;
+        for (const cb of marcados) {
+            const payload = {
                 ID_Registro: Date.now() + "_" + cb.value,
                 Fecha: fecha,
                 ID_Obra: obraId,
                 ID_Empleado: cb.value,
                 Costo_Diario: cb.dataset.costo
             };
-            const success = await writeSheetData(registro);
-            if (!success) successAll = false;
+            const success = await writeSheetData(payload);
+            if (!success) ok = false;
+            await new Promise(r => setTimeout(r, 5)); // micro pausa para IDs únicos
         }
 
-        if (successAll) {
+        if (ok) {
             alert("Registros guardados con éxito.");
             registroForm.reset();
             selectedSpan.textContent = 'Selecciona uno o más';
-            cargarEmpleados(); // recargamos solo empleados
+            cargarEmpleados();
             empleadosContainer.style.display = 'none';
             selectBox.querySelector('.arrow').textContent = '📠';
             costoInput.value = 0;
         } else {
-            alert("Hubo un error al guardar uno o más registros. Inténtalo de nuevo.");
+            alert("Hubo un error al guardar uno o más registros.");
         }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        window.location.href = 'index.html';
     });
 }
 
-// ======================================================
+// ===============================
 // REPORTES
-// ======================================================
+// ===============================
 async function setupReportes() {
     const reporteForm = document.getElementById('reporte-form');
     const reporteResultados = document.getElementById('reporte-resultados');
-    const logoutBtn = document.getElementById('logout-btn');
 
     reporteForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const fechaInicio = document.getElementById('fecha-inicio').value;
         const fechaFin = document.getElementById('fecha-fin').value;
         reporteResultados.innerHTML = '';
@@ -281,14 +300,84 @@ async function setupReportes() {
         document.querySelectorAll('.ver-detalles-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const detallesDiv = btn.nextElementSibling;
-                detallesDiv.style.display = detallesDiv.style.display === 'none' ? 'block' : 'none';
-                btn.textContent = detallesDiv.style.display === 'none' ? 'Ver detalles' : 'Ocultar detalles';
+                const visible = detallesDiv.style.display !== 'none';
+                detallesDiv.style.display = visible ? 'none' : 'block';
+                btn.textContent = visible ? 'Ver detalles' : 'Ocultar detalles';
             });
         });
     });
+}
 
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        window.location.href = 'index.html';
+// ===============================
+// GESTIÓN (upsert Empleados/Obras)
+// ===============================
+async function setupGestion() {
+    const empleadoSelect = document.getElementById('empleado-select');
+    const empleadoNombre = document.getElementById('empleado-nombre');
+    const empleadoCosto = document.getElementById('empleado-costo');
+    const empleadoForm = document.getElementById('empleado-form');
+
+    const obraSelect = document.getElementById('obra-select');
+    const obraNombre = document.getElementById('obra-nombre');
+    const obraForm = document.getElementById('obra-form');
+
+    const empleados = await getSheetData('Empleados');
+    const obras = await getSheetData('Obras');
+
+    // Empleados
+    empleados.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.ID_Empleado;
+        option.textContent = emp.Nombre_Completo;
+        empleadoSelect.appendChild(option);
+    });
+
+    // Obras
+    obras.forEach(ob => {
+        const option = document.createElement('option');
+        option.value = ob.ID_Obra;
+        option.textContent = ob.Nombre_Obra;
+        obraSelect.appendChild(option);
+    });
+
+    empleadoSelect.addEventListener('change', () => {
+        const selected = empleados.find(emp => emp.ID_Empleado == empleadoSelect.value);
+        if (selected) {
+            empleadoNombre.value = selected.Nombre_Completo || '';
+            empleadoCosto.value = selected.Costo_Diario || '';
+        } else {
+            empleadoNombre.value = '';
+            empleadoCosto.value = '';
+        }
+    });
+
+    obraSelect.addEventListener('change', () => {
+        const selected = obras.find(ob => ob.ID_Obra == obraSelect.value);
+        obraNombre.value = selected ? (selected.Nombre_Obra || '') : '';
+    });
+
+    empleadoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = empleadoSelect.value || Date.now().toString();
+        const data = {
+            ID_Empleado: id,
+            Nombre_Completo: empleadoNombre.value,
+            Costo_Diario: empleadoCosto.value
+        };
+        const success = await writeSheetData(data);
+        alert(success ? 'Empleado guardado/actualizado con éxito' : 'Error al guardar empleado');
+        location.reload();
+    });
+
+    obraForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = obraSelect.value || Date.now().toString();
+        const data = {
+            ID_Obra: id,
+            Nombre_Obra: obraNombre.value
+        };
+        const success = await writeSheetData(data);
+        alert(success ? 'Obra guardada/actualizada con éxito' : 'Error al guardar obra');
+        location.reload();
     });
 }

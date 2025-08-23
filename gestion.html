@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Empleados y Obras</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="gestion-page">
+    <header>
+        <div class="header-container">
+            <h1>Gestión</h1>
+            <nav class="nav-links">
+                <a href="registro.html">Registro</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="gestion.html" class="active">Gestión</a>
+            </nav>
+            <button id="logout-btn">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+
+        <h2>Gestión de Empleados</h2>
+        <form id="empleado-form">
+            <div class="input-group">
+                <label for="empleado-select">Seleccionar empleado:</label>
+                <select id="empleado-select">
+                    <option value="">-- Seleccionar empleado --</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="empleado-nombre">Nombre Completo</label>
+                <input type="text" id="empleado-nombre" required>
+            </div>
+            <div class="input-group">
+                <label for="empleado-costo">Costo Diario</label>
+                <input type="number" id="empleado-costo" required>
+            </div>
+            <button type="submit">Guardar Empleado</button>
+        </form>
+
+        <hr>
+
+        <h2>Gestión de Obras</h2>
+        <form id="obra-form">
+            <div class="input-group">
+                <label for="obra-select">Seleccionar obra:</label>
+                <select id="obra-select">
+                    <option value="">-- Seleccionar obra --</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="obra-nombre">Nombre Obra</label>
+                <input type="text" id="obra-nombre" required>
+            </div>
+            <button type="submit">Guardar Obra</button>
+        </form>
+
+    </main>
+
+    <script src="main.js"></script>
+</body>
+</html>
