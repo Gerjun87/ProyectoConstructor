@@ -208,12 +208,19 @@ async function setupRegistro() {
     // Guardar registros diarios
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        const submitBtn = registroForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Guardando...";
+
         const fecha = document.getElementById('fecha').value;
         const obraId = obraSelect.value;
         const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
 
         if (!fecha || !obraId || marcados.length === 0) {
             showNotification("Completa fecha, obra y al menos un empleado.", "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Guardar";
             return;
         }
 
@@ -233,14 +240,12 @@ async function setupRegistro() {
 
         if (ok) {
             showNotification("Registros guardados con éxito ✅", "success");
-            registroForm.reset();
-            selectedSpan.textContent = 'Selecciona uno o más';
-            cargarEmpleados();
-            empleadosContainer.style.display = 'none';
-            selectBox.querySelector('.arrow').textContent = '📠';
-            costoInput.value = 0;
+            // reload después de la notificación
+            setTimeout(() => location.reload(), 2500);
         } else {
             showNotification("Hubo un error al guardar uno o más registros.", "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Guardar";
         }
     });
 }
@@ -427,6 +432,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Guardar/Actualizar empleado =====
     empleadoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = empleadoForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Guardando...";
+
         const id = empleadoSelect.value || Date.now().toString();
         const data = {
             ID_Empleado: id,
@@ -436,19 +445,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const success = await writeSheetData(data);
         if(success) {
             showNotification('Empleado guardado/actualizado con éxito ✅', "success");
-
-            // Esperar 2.5 segundos antes de recargar la página
-            setTimeout(() => {
-                location.reload();
-            }, 3500);
+            setTimeout(() => location.reload(), 2500);
         } else {
             showNotification('Error al guardar empleado', "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Guardar";
         }
     });
 
     // ===== Guardar/Actualizar obra =====
     obraForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = obraForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Guardando...";
+
         const id = obraSelect.value || Date.now().toString();
         const data = {
             ID_Obra: id,
@@ -457,13 +468,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const success = await writeSheetData(data);
         if(success) {
             showNotification('Obra guardada/actualizada con éxito ✅', "success");
-
-            // Esperar 2.5 segundos antes de recargar la página
-            setTimeout(() => {
-                location.reload();
-            }, 3500);
+            setTimeout(() => location.reload(), 2500);
         } else {
             showNotification('Error al guardar obra', "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Guardar";
         }
     });
 
