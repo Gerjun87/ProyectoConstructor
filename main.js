@@ -147,6 +147,7 @@ async function setupRegistro() {
     const selectBox = document.querySelector('.select-box');
     const costoInput = document.getElementById('costo');
     const registroForm = document.getElementById('registro-form');
+    const fechaInput = document.getElementById('fecha');
 
     const obras = await getSheetData('Obras');
     const empleados = await getSheetData('Empleados');
@@ -161,29 +162,68 @@ async function setupRegistro() {
         });
     }
 
-    function cargarEmpleados() {
+    // --- Helper para normalizar fechas a YYYY-MM-DD ---
+    const normalizarFecha = (f) => {
+        if (!f) return '';
+        const s = String(f).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // ya está OK
+        const d = new Date(s);
+        if (!isNaN(d)) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        // fallback: cortar a 10 por si viene "YYYY-MM-DDThh:mm..."
+        return s.slice(0, 10);
+    };
+
+    // Cargar empleados aplicando filtro por fecha seleccionada
+    async function cargarEmpleadosParaFecha(fechaSeleccionada) {
         empleadosContainer.innerHTML = '';
-        if (!empleados) return;
-        empleados.forEach(empleado => {
-            const label = document.createElement('label');
+        selectedSpan.textContent = 'Selecciona uno o más empleados';
+        costoInput.value = 0;
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = empleado.ID_Empleado;
-            checkbox.dataset.costo = empleado.Costo_Diario;
-            checkbox.dataset.nombre = empleado.Nombre_Completo;
+        if (!fechaSeleccionada) return;
 
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
-            empleadosContainer.appendChild(label);
+        // Traer registros SIEMPRE al momento de elegir fecha (datos frescos)
+        const registros = await getSheetData('Registros_Diarios');
+        const fechaNorm = normalizarFecha(fechaSeleccionada);
 
-            checkbox.addEventListener('change', () => {
-                actualizarCostoTotal();
-                actualizarTextoSeleccionados();
+        // IDs de empleados ya ocupados ese día (en cualquier obra)
+        const empleadosOcupadosSet = new Set(
+            (registros || [])
+                .filter(r => normalizarFecha(r.Fecha) === fechaNorm)
+                .map(r => r.ID_Empleado)
+        );
+
+        // Pintar lista (ocultando ocupados)
+        if (empleados && empleados.length) {
+            empleados.forEach(empleado => {
+                if (empleadosOcupadosSet.has(empleado.ID_Empleado)) {
+                    // Ocultar los ocupados ese día
+                    return;
+                }
+
+                const label = document.createElement('label');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = empleado.ID_Empleado;
+                checkbox.dataset.costo = empleado.Costo_Diario;
+                checkbox.dataset.nombre = empleado.Nombre_Completo;
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${empleado.Nombre_Completo} ($${empleado.Costo_Diario})`));
+                empleadosContainer.appendChild(label);
+
+                checkbox.addEventListener('change', () => {
+                    actualizarCostoTotal();
+                    actualizarTextoSeleccionados();
+                });
             });
-        });
+        }
     }
-    cargarEmpleados();
 
     function actualizarCostoTotal() {
         const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
@@ -195,17 +235,35 @@ async function setupRegistro() {
     function actualizarTextoSeleccionados() {
         const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
         const nombres = Array.from(marcados).map(cb => cb.dataset.nombre);
-        selectedSpan.textContent = nombres.length ? nombres.join(', ') : 'Selecciona uno o más';
+        selectedSpan.textContent = nombres.length ? nombres.join(', ') : 'Selecciona uno o más empleados';
     }
 
-    // Dropdown empleados
+    // Dropdown empleados: pedir fecha primero
     selectBox.addEventListener('click', () => {
+        if (!fechaInput.value) {
+            showNotification("Elegí una fecha primero.", "error");
+            return;
+        }
         const activo = empleadosContainer.classList.toggle('active');
         empleadosContainer.style.display = activo ? 'block' : 'none';
         selectBox.querySelector('.arrow').textContent = activo ? '❌' : '📠';
     });
 
-    // Guardar registros diarios
+    // Cuando cambia la fecha, recargar la lista con filtro
+    fechaInput.addEventListener('change', async () => {
+        await cargarEmpleadosParaFecha(fechaInput.value);
+        // cerrar dropdown al cambiar fecha
+        empleadosContainer.style.display = 'none';
+        empleadosContainer.classList.remove('active');
+        selectBox.querySelector('.arrow').textContent = '📠';
+    });
+
+    // Si ya hay fecha pre-cargada (autofill/navegador), cargar al inicio
+    if (fechaInput.value) {
+        await cargarEmpleadosParaFecha(fechaInput.value);
+    }
+
+    // Guardar registros diarios (con bloqueo anti-doble click)
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -213,14 +271,14 @@ async function setupRegistro() {
         submitBtn.disabled = true;
         submitBtn.textContent = "Guardando...";
 
-        const fecha = document.getElementById('fecha').value;
+        const fecha = fechaInput.value;
         const obraId = obraSelect.value;
         const marcados = empleadosContainer.querySelectorAll('input[type="checkbox"]:checked');
 
         if (!fecha || !obraId || marcados.length === 0) {
             showNotification("Completa fecha, obra y al menos un empleado.", "error");
             submitBtn.disabled = false;
-            submitBtn.textContent = "Guardar";
+            submitBtn.textContent = "Guardar Registro";
             return;
         }
 
@@ -228,7 +286,7 @@ async function setupRegistro() {
         for (const cb of marcados) {
             const payload = {
                 ID_Registro: Date.now() + "_" + cb.value,
-                Fecha: fecha,
+                Fecha: normalizarFecha(fecha), // guardamos normalizado
                 ID_Obra: obraId,
                 ID_Empleado: cb.value,
                 Costo_Diario: cb.dataset.costo
@@ -240,12 +298,11 @@ async function setupRegistro() {
 
         if (ok) {
             showNotification("Registros guardados con éxito ✅", "success");
-            // reload después de la notificación
             setTimeout(() => location.reload(), 2500);
         } else {
             showNotification("Hubo un error al guardar uno o más registros.", "error");
             submitBtn.disabled = false;
-            submitBtn.textContent = "Guardar";
+            submitBtn.textContent = "Guardar Registro";
         }
     });
 }
